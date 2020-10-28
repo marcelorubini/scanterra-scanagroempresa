@@ -1,5 +1,5 @@
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -14,7 +14,7 @@ spec:
     path: /var/lib/tmp/sae-borg-cache
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -29,7 +29,7 @@ spec:
     path: /var/lib/tmp/sae-borg-repo
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -44,7 +44,7 @@ spec:
     path: /var/lib/tmp/sae-borg-users-home
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -59,7 +59,7 @@ spec:
     path: /var/lib/tmp/sae-dbbackups
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -74,7 +74,7 @@ spec:
     path: /var/lib/tmp/sae-dbdata
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -89,22 +89,7 @@ spec:
     path: /var/lib/tmp/sae-django
     type: DirectoryOrCreate
 ---
-
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: scanagroempresa-django
-spec:
-  storageClassName: local-storage
-  capacity:
-    storage: 100Mi
-  accessModes:
-  - ReadWriteOnce
-  hostPath:
-    path: /var/lib/tmp/sae-django
-    type: DirectoryOrCreate
----
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -119,7 +104,7 @@ spec:
     path: /var/lib/tmp/sae-geonode-ssh-config
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -127,14 +112,14 @@ metadata:
 spec:
   storageClassName: local-storage
   capacity:
-    storage: 100Mi
+    storage: 1Gi
   accessModes:
   - ReadWriteOnce
   hostPath:
     path: /var/lib/tmp/sae-geoserver-data-dir
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -149,7 +134,7 @@ spec:
     path: /var/lib/tmp/sae-redis-data
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -164,11 +149,11 @@ spec:
     path: /var/lib/tmp/sae-ssh-config
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: scanagroempresa-statics
+  name: scanagroempresa-scanagroempresa-statics
 spec:
   storageClassName: local-storage
   capacity:
@@ -176,10 +161,25 @@ spec:
   accessModes:
   - ReadWriteOnce
   hostPath:
+    path: /var/lib/tmp/sae-scanagroempresa-statics
+    type: DirectoryOrCreate
+---
+# Source: basic-volumes/templates/volumes.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: scanagroempresa-statics
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
     path: /var/lib/tmp/sae-statics
     type: DirectoryOrCreate
 ---
-
+# Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -187,7 +187,7 @@ metadata:
 spec:
   storageClassName: local-storage
   capacity:
-    storage: 100Mi
+    storage: 1Gi
   accessModes:
   - ReadWriteOnce
   hostPath:

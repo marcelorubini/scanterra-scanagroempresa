@@ -3,5 +3,4 @@ kind: StorageClass
 metadata:
   name: local-storage
 provisioner: kubernetes.io/no-provisioner
-reclaimPolicy: Retain
-volumeBindingMode: Immediate
+volumeBindingMode: WaitForFirstConsumer
