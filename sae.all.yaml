@@ -420,7 +420,7 @@ spec:
           - name: BORG_PASSPHRASE
             value: UioAlHICpwn3UoTNr8pQhghJdBx3393j
           - name: BORG_RELOCATED_REPO_ACCESS_IS_OK
-            value: true
+            value: "yes"
           - name: BORG_REPO
             value: /borg/repo
           - name: USERS
