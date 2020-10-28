@@ -123,7 +123,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: scanagroempresa-redis-data
+  name: scanagroempresa-scanagroempresa-redis-data
 spec:
   storageClassName: local-storage
   capacity:
@@ -131,14 +131,14 @@ spec:
   accessModes:
   - ReadWriteOnce
   hostPath:
-    path: /var/lib/tmp/sae-redis-data
+    path: /var/lib/tmp/sae-scanagroempresa-redis-data
     type: DirectoryOrCreate
 ---
 # Source: basic-volumes/templates/volumes.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: scanagroempresa-ssh-config
+  name: scanagroempresa-scanagroempresa-ssh-config
 spec:
   storageClassName: local-storage
   capacity:
@@ -146,7 +146,7 @@ spec:
   accessModes:
   - ReadWriteOnce
   hostPath:
-    path: /var/lib/tmp/sae-ssh-config
+    path: /var/lib/tmp/sae-scanagroempresa-ssh-config
     type: DirectoryOrCreate
 ---
 # Source: basic-volumes/templates/volumes.yaml

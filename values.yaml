@@ -617,13 +617,12 @@ deployments:
       - name: scanagroempresa-scanagroempresa-redis-data
         persistentVolumeClaim:
             claimName: scanagroempresa-scanagroempresa-redis-data
-
   - name: scanagroempresa
     image: scanterra/scanagroempresa:develop
     imagePullPolicy: Always
     mounts:
       - mountPath: /home/web/static
-        name: scanagroempresa-statics
+        name: scanagroempresa-scanagroempresa-statics
     envs:
       - name: ALLOWED_HOSTS
         value: '[''.scanterra.com'']'
@@ -714,9 +713,9 @@ deployments:
       - name: URL_PREFIX
         value: scanagroempresa/
     volumes:
-      - name: scanagroempresa-statics
+      - name: scanagroempresa-scanagroempresa-statics
         persistentVolumeClaim:
-          claimName: scanagroempresa-statics
+          claimName: scanagroempresa-scanagroempresa-statics
   - name: smtp
     image: catatnight/postfix
     imagePullPolicy: Always
