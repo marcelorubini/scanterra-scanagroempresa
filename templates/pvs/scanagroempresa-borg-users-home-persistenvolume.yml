@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: scanagroempresa-borg-users-home
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: 100Mi
+  accessModes:
+  - ReadWriteOnce
+  hostPath:
+    path: /var/lib/tmp/sae-borg-users-home
+    type: DirectoryOrCreate

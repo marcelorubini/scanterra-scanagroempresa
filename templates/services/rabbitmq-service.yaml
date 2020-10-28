@@ -1,0 +1,20 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    field.cattle.io/targetWorkloadIds: '["deployment:scanagroempresa:rabbitmq"]'
+  name: rabbitmq
+  namespace: scanagroempresa
+spec:
+  clusterIP: None
+  ports:
+  - name: default
+    port: 42
+    protocol: TCP
+    targetPort: 42
+  selector:
+    workloadID_rabbitmq: "true"
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

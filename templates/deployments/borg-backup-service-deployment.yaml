@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    annotations:
+        cron.action: restart
+        cron.schedule: 0 */5 * * *
+        io.rancher.container.pull_image: always
+        io.rancher.container.start_once: "true"
+        kompose.cmd: ./migration-tools-0.1.3 parse --docker-file export/scanterra.PROD/scanagroempresa/docker-compose.yml
+            --rancher-file export/scanterra.PROD/scanagroempresa/rancher-compose.yml
+            --output-file parse2-scanagroempresa.PROD
+        kompose.version: 1.21.0 (992df58d8)
+    creationTimestamp: null
+    labels:
+        io.kompose.service: borg-backup-service
+    name: borg-backup-service
+spec:
+    selector:
+        matchLabels:
+            io.kompose.service: borg-backup-service
+    strategy:
+        type: Recreate
+    template:
+        metadata:
+            annotations:
+                cron.action: restart
+                cron.schedule: 0 */5 * * *
+                io.rancher.container.pull_image: always
+                io.rancher.container.start_once: "true"
+                kompose.cmd: ./migration-tools-0.1.3 parse --docker-file export/scanterra.PROD/scanagroempresa/docker-compose.yml
+                    --rancher-file export/scanterra.PROD/scanagroempresa/rancher-compose.yml
+                    --output-file parse2-scanagroempresa.PROD
+                kompose.version: 1.21.0 (992df58d8)
+            creationTimestamp: null
+            labels:
+                io.kompose.service: borg-backup-service
+        spec:
+            imagePullSecrets:
+            - name: dockerhub
+            containers:
+              - env:
+                  - name: ARCHIVE_PREFIX
+                    value: kobotoolbox
+                  - name: BACKUP_FROM
+                    value: /borg/data
+                  - name: BACKUP_WHAT
+                    value: .
+                  - name: BORG_PASSPHRASE
+                    value: UioAlHICpwn3UoTNr8pQhghJdBx3393j
+                  - name: BORG_REPO
+                    value: /borg/repo
+                  - name: COMPRESSION
+                    value: lz4
+                  - name: KEEP_DAILY
+                    value: "7"
+                  - name: KEEP_MONTHLY
+                    value: "12"
+                  - name: KEEP_WEEKLY
+                    value: "4"
+                  - name: KEEP_YEARLY
+                    value: "1"
+                  - name: PRUNE
+                    value: "1"
+                image: lucernae/borgbackup:1.1.8
+                imagePullPolicy: ""
+                name: borg-backup-service
+                resources: {}
+                volumeMounts:
+                  - mountPath: /borg/repo
+                    name: scanagroempresa-borg-repo
+                  - mountPath: /root/.cache/borg
+                    name: scanagroempresa-borg-cache
+                  - mountPath: /borg/data/geoserver-data-dir
+                    name: scanagroempresa-geoserver-data-dir
+                  - mountPath: /borg/data/dbbackups
+                    name: scanagroempresa-dbbackups
+                  - mountPath: /borg/data/templates
+                    name: templates
+            restartPolicy: Always
+            serviceAccountName: ""
+            volumes:
+              - name: scanagroempresa-borg-repo
+                persistentVolumeClaim:
+                    claimName: scanagroempresa-borg-repo
+              - name: scanagroempresa-borg-cache
+                persistentVolumeClaim:
+                    claimName: scanagroempresa-borg-cache
+              - name: scanagroempresa-geoserver-data-dir
+                persistentVolumeClaim:
+                    claimName: scanagroempresa-geoserver-data-dir
+              - name: scanagroempresa-dbbackups
+                persistentVolumeClaim:
+                    claimName: scanagroempresa-dbbackups
+              - name: templates
+                persistentVolumeClaim:
+                    claimName: templates
+status: {}
