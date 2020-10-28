@@ -2,17 +2,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
-
-image:
-  repository: nginx
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
-
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: "scanagroempresa-app"
+fullnameOverride: "scanagroempresa"
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -21,59 +12,906 @@ serviceAccount:
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: scanterra
+  name: "basic-user"
 
-podAnnotations: {}
+pullSecrets:
+  - name: dockerhub
+restartPolicy: Always
+serviceAccountName: ""
 
-podSecurityContext: {}
-  # fsGroup: 2000
+deployments:
+  definitions:
+  - name: backup-db
+    image: kartoza/pg-backup:9.6
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /backups
+        name: scanagroempresa-dbbackups
+    envs:
+      - name: ARCHIVE_FILENAME
+        value: /backups/PG_scanagroempresa
+      - name: DUMPPREFIX
+        value: PG_scanagroempresa
+      - name: PGHOST
+        value: db
+      - name: PGPASSWORD
+        value: postgres
+      - name: PGPORT
+        value: "5432"
+      - name: PGUSER
+        value: postgres
+      - name: POSTGRES_DBNAME
+        value: geonode
+      - name: POSTGRES_HOST
+        value: db
+      - name: POSTGRES_PASS
+        value: postgres
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_USER
+        value: postgres
+      - name: WITH_POSTGIS
+        value: "1"
+    volumes:
+      - name: scanagroempresa-dbbackups
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbbackups
+  - name: borg-backup-service
+    image: lucernae/borgbackup:1.1.8
+    imagePullPolicy: Always
+    annotations:
+      cron.action: restart
+      cron.schedule: 0 */5 * * *
+      io.rancher.container.pull_image: always
+      io.rancher.container.start_once: "true"
+    mounts:
+      - mountPath: /borg/repo
+        name: scanagroempresa-borg-repo
+      - mountPath: /root/.cache/borg
+        name: scanagroempresa-borg-cache
+      - mountPath: /borg/data/geoserver-data-dir
+        name: scanagroempresa-geoserver-data-dir
+      - mountPath: /borg/data/dbbackups
+        name: scanagroempresa-dbbackups
+      - mountPath: /borg/data/templates
+        name: templates
+    envs:
+      - name: ARCHIVE_PREFIX
+        value: kobotoolbox
+      - name: BACKUP_FROM
+        value: /borg/data
+      - name: BACKUP_WHAT
+        value: .
+      - name: BORG_PASSPHRASE
+        value: UioAlHICpwn3UoTNr8pQhghJdBx3393j
+      - name: BORG_REPO
+        value: /borg/repo
+      - name: COMPRESSION
+        value: lz4
+      - name: KEEP_DAILY
+        value: "7"
+      - name: KEEP_MONTHLY
+        value: "12"
+      - name: KEEP_WEEKLY
+        value: "4"
+      - name: KEEP_YEARLY
+        value: "1"
+      - name: PRUNE
+        value: "1"
+    volumes:
+      - name: scanagroempresa-borg-repo
+        persistentVolumeClaim:
+          claimName: scanagroempresa-borg-repo
+      - name: scanagroempresa-borg-cache
+        persistentVolumeClaim:
+          claimName: scanagroempresa-borg-cache
+      - name: scanagroempresa-geoserver-data-dir
+        persistentVolumeClaim:
+          claimName: scanagroempresa-geoserver-data-dir
+      - name: scanagroempresa-dbbackups
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbbackups
+      - name: templates
+        persistentVolumeClaim:
+          claimName: templates
+  - name: borg-backup-service-server
+    image: lucernae/borgbackup:1.1.8
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /root
+        name: scanagroempresa-borg-users-home
+      - mountPath: /borg/repo
+        name: scanagroempresa-borg-repo
+      - mountPath: /root/.cache/borg
+        name: scanagroempresa-borg-cache
+      - mountPath: /borg/data/geoserver-data-dir
+        name: scanagroempresa-geoserver-data-dir
+      - mountPath: /borg/data/statics
+        name: scanagroempresa-statics
+      - mountPath: /borg/data/dbbackups
+        name: scanagroempresa-dbbackups
+      - mountPath: /borg/data/templates
+        name: templates
+    envs:
+      - name: ARCHIVE_PREFIX
+        value: kobotoolbox
+      - name: BORG_PASSPHRASE
+        value: UioAlHICpwn3UoTNr8pQhghJdBx3393j
+      - name: BORG_RELOCATED_REPO_ACCESS_IS_OK
+        value: yes
+      - name: BORG_REPO
+        value: /borg/repo
+      - name: USERS
+        value: root
+    volumes:
+      - name: scanagroempresa-borg-users-home
+        persistentVolumeClaim:
+          claimName: scanagroempresa-borg-users-home
+      - name: scanagroempresa-borg-repo
+        persistentVolumeClaim:
+          claimName: scanagroempresa-borg-repo
+      - name: scanagroempresa-borg-cache
+        persistentVolumeClaim:
+          claimName: scanagroempresa-borg-cache
+      - name: scanagroempresa-geoserver-data-dir
+        persistentVolumeClaim:
+          claimName: scanagroempresa-geoserver-data-dir
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-statics
+      - name: scanagroempresa-dbbackups
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbbackups
+      - name: templates
+        persistentVolumeClaim:
+          claimName: templates
+  - name: btsync-data
+    image: kartoza/btsync:rancher
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /web
+        name: scanagroempresa-dbbackups
+    envs:
+      - name: DEVICE
+        value: GeonodeGenericBackups-scanagroempresa
+      - name: SECRET
+      - name: STANDBY_MODE
+        value: "TRUE"
+    volumes:
+      - name: scanagroempresa-dbbackups
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbbackups
+  - name: btsync-templates
+    image: kartoza/btsync:rancher
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /web
+        name: templates
+    envs:
+      - name: DEVICE
+        value: GeonodeGenericTemplates-scanagroempresa
+      - name: SECRET
+      - name: STANDBY_MODE
+        value: "TRUE"
+    volumes:
+      - name: templates
+        persistentVolumeClaim:
+          claimName: templates
+  - name: data-dir-conf
+    image: scanterra/geoserver_data:2.13.x
+    imagePullPolicy: Always
+    args:
+      - /bin/true
+    mounts:
+      - mountPath: /geoserver_data/data
+        name: scanagroempresa-geoserver-data-dir
+    volumes:
+      - name: scanagroempresa-geoserver-data-dir
+        persistentVolumeClaim:
+          claimName: scanagroempresa-geoserver-data-dir
+  - name: db
+    image: scanterra/postgis-docker:develop
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /var/lib/postgresql/data
+        name: scanagroempresa-dbdata
+      - mountPath: /pg_backups
+        name: scanagroempresa-dbbackups
+    envs:
+      - name: GEONODE_DATABASE
+        value: geonode
+      - name: GEONODE_DATABASE_PASSWORD
+        value: geonode
+      - name: GEONODE_GEODATABASE
+        value: geonode_data
+      - name: GEONODE_GEODATABASE_PASSWORD
+        value: geonode_data
+    volumes:
+      - name: scanagroempresa-dbdata
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbdata
+      - name: scanagroempresa-dbbackups
+        persistentVolumeClaim:
+          claimName: scanagroempresa-dbbackups
+  - name: django
+    image: marcelorubini/geonode_generic:removes-models-cp
+    imagePullPolicy: Always
+    args:
+      - uwsgi
+      - --ini
+      - /usr/src/app/uwsgi.ini
+      - -b 32768 --honour-stdin # fixes uwsgi socket buffer-size issue
+    mounts:
+      - mountPath: /mnt/volumes/statics
+        name: scanagroempresa-statics
+      - mountPath: /usr/src/app/geonode_generic/templates
+        name: templates
+    envs:
+      - name: ADMIN_EMAILS
+      - name: ALLOWED_HOSTS
+        value: '[''.scanterra.com'']'
+      - name: ASYNC_SIGNALS_GEONODE
+        value: "True"
+      - name: BROKER_URL
+        value: amqp://guest:guest@rabbitmq:5672/
+      - name: C_FORCE_ROOT
+        value: "1"
+      - name: DATABASE_HOST
+        value: db
+      - name: DATABASE_NAME
+        value: geonode
+      - name: DATABASE_PASSWORD
+        value: postgres
+      - name: DATABASE_USERNAME
+        value: postgres
+      - name: DEBUG
+        value: "False"
+      - name: DEFAULT_BACKEND_DATASTORE
+        value: datastore
+      - name: DEFAULT_FROM_EMAIL
+        value: soporte@scanterra.com
+      - name: DJANGO_SETTINGS_MODULE
+        value: core.settings.overrides
+      - name: DOCKER_ENV
+        value: production
+      - name: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - name: EMAIL_HOST
+        value: smtp
+      - name: EMAIL_HOST_PASSWORD
+        value: docker
+      - name: EMAIL_HOST_USER
+        value: noreply
+      - name: EMAIL_PORT
+        value: "25"
+      - name: EMAIL_USE_TLS
+        value: "False"
+      - name: GEOIP_PATH
+        value: /mnt/volumes/statics/geoip.db
+      - name: GEONODE_CSRF_COOKIE_NAME
+        value: csrftoken_geonode
+      - name: GEONODE_DATABASE
+        value: geonode
+      - name: GEONODE_DATABASE_PASSWORD
+        value: geonode
+      - name: GEONODE_GEODATABASE
+        value: geonode_data
+      - name: GEONODE_GEODATABASE_PASSWORD
+        value: geonode_data
+      - name: GEONODE_INDEX_PREFIX
+        value: r'^administration/?'
+      - name: GEONODE_INSTANCE_NAME
+        value: geonode
+      - name: GEONODE_PREFIX
+        value: ''''''
+      - name: GEONODE_THEME_APP_NAME
+        value: geonode_custom_theme
+      - name: GEONODE_THEME_APP_PIP_URL
+        value: git+https://github.com/kartoza/geonode_custom_theme.git@develop
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: GEOSERVER_BASE_URL
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: GEOSERVER_LOCATION
+        value: http://geoserver:8080/geoserver/
+      - name: GEOSERVER_PUBLIC_LOCATION
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: IS_CELERY
+        value: "false"
+      - name: MEDIA_ROOT
+        value: /mnt/volumes/statics/uploaded/
+      - name: PYTHONPATH
+        value: /usr/src/geonode_overrides
+      - name: RANCHER_ENV
+        value: prod.scanterra
+      - name: RANCHER_STACK
+        value: scanagroempresa
+      - name: ROOT_URLCONF
+        value: core.root_urls
+      - name: SCANAGROEMPRESA_URL
+        value: https://local.scanagroempresa.scanterra.com/scanagroempresa/
+      - name: SECRET_KEY
+        value: sae8c0#cb&d-yt=d)vwf%8ks(rn_+++$za5(mv(2g#-1l9k2%f)vs
+      - name: SITEURL
+        value: https://local.scanagroempresa.scanterra.com/
+      - name: STATIC_ROOT
+        value: /mnt/volumes/statics/static/
+      - name: USE_GEONODE_THEME_APP
+        value: "False"
+      - name: USE_GEOSERVER
+        value: "True"
+      - name: UWSGI_CMD
+        value: uwsgi --ini /usr/src/app/uwsgi.ini
+      - name: DATABASE_URL
+        value: postgres://geonode:geonode@db:5432/geonode
+      - name: GEODATABASE_URL
+        value: postgis://geonode_data:geonode_data@db:5432/geonode_data
+    volumes:
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-statics
+      - name: templates
+        persistentVolumeClaim:
+          claimName: templates
+  - name: geonode
+    image: scanterra/nginx-geonode:latest
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /mnt/volumes/statics
+        name: scanagroempresa-statics
+    volumes:
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-statics
+  - name: geonode-updatelayers
+    image: marcelorubini/geonode_generic:removes-models-cp
+    imagePullPolicy: Always
+    args:
+      - python
+      - manage.py
+      - updatelayers
+      - -i
+      - -s
+      - kobo_form_data
+    mounts:
+      - mountPath: /mnt/volumes/statics
+        name: scanagroempresa-statics
+      - mountPath: /usr/src/app/geonode_generic/templates
+        name: templates
+    envs:
+      - name: ADMIN_EMAILS
+        value: ""
+      - name: ALLOWED_HOSTS
+        value: '[''.scanterra.com'']'
+      - name: C_FORCE_ROOT
+        value: "1"
+      - name: DATABASE_HOST
+        value: db
+      - name: DATABASE_NAME
+        value: geonode
+      - name: DATABASE_PASSWORD
+        value: postgres
+      - name: DATABASE_USERNAME
+        value: postgres
+      - name: DEBUG
+        value: "False"
+      - name: DEFAULT_BACKEND_DATASTORE
+        value: datastore
+      - name: DEFAULT_FROM_EMAIL
+        value: soporte@scanterra.com
+      - name: DJANGO_SETTINGS_MODULE
+        value: core.settings.overrides
+      - name: DOCKER_ENV
+      - name: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - name: EMAIL_HOST
+        value: smtp
+      - name: EMAIL_HOST_PASSWORD
+        value: docker
+      - name: EMAIL_HOST_USER
+        value: noreply
+      - name: EMAIL_PORT
+        value: "25"
+      - name: EMAIL_USE_TLS
+        value: "False"
+      - name: GEOIP_PATH
+        value: /mnt/volumes/statics/geoip.db
+      - name: GEONODE_DATABASE
+        value: geonode
+      - name: GEONODE_DATABASE_PASSWORD
+        value: geonode
+      - name: GEONODE_GEODATABASE
+        value: geonode_data
+      - name: GEONODE_GEODATABASE_PASSWORD
+        value: geonode_data
+      - name: GEONODE_INDEX_PREFIX
+        value: r'^administration/?'
+      - name: GEONODE_INSTANCE_NAME
+        value: geonode
+      - name: GEONODE_PREFIX
+        value: ''''''
+      - name: GEONODE_THEME_APP_NAME
+        value: geonode_custom_theme
+      - name: GEONODE_THEME_APP_PIP_URL
+        value: git+https://github.com/kartoza/geonode_custom_theme.git@develop
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: GEOSERVER_BASE_URL
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: GEOSERVER_LOCATION
+        value: http://geoserver:8080/geoserver/
+      - name: GEOSERVER_PUBLIC_LOCATION
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: IS_CELERY
+        value: "false"
+      - name: MEDIA_ROOT
+        value: /mnt/volumes/statics/uploaded/
+      - name: PYTHONPATH
+        value: /usr/src/geonode_overrides
+      - name: RANCHER_ENV
+        value: prod.scanterra
+      - name: RANCHER_STACK
+        value: scanagroempresa
+      - name: ROOT_URLCONF
+        value: core.root_urls
+      - name: SCANAGROEMPRESA_URL
+        value: https://local.scanagroempresa.scanterra.com/scanagroempresa/
+      - name: SECRET_KEY
+        value: sae8c0#cb&d-yt=d)vwf%8ks(rn_+++$za5(mv(2g#-1l9k2%f)vs
+      - name: SITEURL
+        value: https://local.scanagroempresa.scanterra.com/
+      - name: STATIC_ROOT
+        value: /mnt/volumes/statics/static/
+      - name: USE_GEONODE_THEME_APP
+        value: "True"
+      - name: UWSGI_CMD
+        value: uwsgi --ini /usr/src/app/uwsgi.ini
+      - name: DATABASE_URL
+        value: postgres://geonode:geonode@db:5432/geonode
+      - name: GEODATABASE_URL
+        value: postgis://geonode_data:geonode_data@db:5432/geonode_data
+    volumes:
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-statics
+      - name: templates
+        persistentVolumeClaim:
+          claimName: templates
+  - name: geoserver
+    image: scanterra/geoserver-docker:2.13.x
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /geoserver_data/data
+        name: scanagroempresa-geoserver-data-dir
+    envs:
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: NGINX_BASE_URL
+        value: https://local.scanagroempresa.scanterra.com/
+    volumes:
+      - name: scanagroempresa-geoserver-data-dir
+        persistentVolumeClaim:
+          claimName: scanagroempresa-geoserver-data-dir
+  - name: kobo-extractor
+    image: scanterra/kobo_extractor:develop
+    imagePullPolicy: Always
+    args:
+      - python
+      - manage.py
+      - kobo_extractor
+    mounts:
+      - mountPath: /home/web/static
+        name: scanagroempresa-scanagroempresa-statics
+      - mountPath: /root/.ssh
+        name: scanagroempresa-scanagroempresa-ssh-config
+    envs:
+      - name: ALLOWED_HOSTS
+        value: '[''.scanterra.com'']'
+      - name: DATA_PGDATABASE
+        value: kobo_form_data
+      - name: DATA_PGHOST
+        value: db
+      - name: DATA_PGPASSWORD
+        value: postgres
+      - name: DATA_PGPORT
+        value: "5432"
+      - name: DATA_PGUSER
+        value: postgres
+      - name: DJANGO_SECRET_KEY
+        value: sae8c0#cb&d-yt=d)vwf%8ks(rn_+++$za5(mv(2g#-1l9k2%f)vs
+      - name: DJANGO_SETTINGS_MODULE
+        value: scanterra.settings_prod
+      - name: GEONODE_ADMIN_PASSWORD
+        value: '@ScanTerra2019'
+      - name: GEONODE_ADMIN_USER
+        value: admin
+      - name: GEONODE_CSRF_COOKIE_NAME
+        value: csrftoken_geonode
+      - name: GEONODE_INDEX_PREFIX
+        value: administration/
+      - name: GEONODE_PGDATABASE
+        value: geonode
+      - name: GEONODE_PGHOST
+        value: db
+      - name: GEONODE_PGPASSWORD
+        value: postgres
+      - name: GEONODE_PGPORT
+        value: "5432"
+      - name: GEONODE_PGUSER
+        value: postgres
+      - name: GEONODE_SERVER_HOST
+        value: http://geonode
+      - name: GEONODE_SERVER_PUBLIC_HOST
+        value: https://local.scanagroempresa.scanterra.com
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: GEOSERVER_ADMIN_USER
+        value: admin
+      - name: GEOSERVER_HOST
+        value: https://local.scanagroempresa.scanterra.com/geoserver
+      - name: GEOSERVER_SERVER_HOST
+        value: https://local.scanagroempresa.scanterra.com/geoserver
+      - name: KOBO_API_TOKEN
+        value: a3e4cf35950304fe709a9cd9ea2b4b6426ea8d21
+      - name: KOBO_API_URL
+        value: https://local.scancollect.scanterra.com
+      - name: KOBO_PGDATABASE
+        value: kobotoolbox
+      - name: KOBO_PGHOST
+        value: postgres.kobotoolbox
+      - name: KOBO_PGPASSWORD
+        value: 2iPKRYvECdJLHspsX5Uj0QKs5EJ1Ztqt
+      - name: KOBO_PGPORT
+        value: "5432"
+      - name: KOBO_PGUSER
+        value: report_user
+      - name: KPI_URL
+        value: https://local.scancollect-form-edit.scanterra.com
+      - name: MEDIA_ROOT
+        value: /home/web/media
+      - name: PGDATABASE
+        value: scanweb
+      - name: PGHOST
+        value: db
+      - name: PGPASSWORD
+        value: postgres
+      - name: PGPORT
+        value: "5432"
+      - name: PGUSER
+        value: postgres
+      - name: PYTHONPATH
+        value: /home/web/extra_app
+      - name: REDIS_DEFAULT_DB
+        value: "1"
+      - name: REDIS_HOST
+        value: redis
+      - name: REDIS_PORT
+        value: "6379"
+      - name: REDIS_SESSION_DB
+        value: "2"
+      - name: ROOT_URLCONF
+        value: scanterra.root_urls
+      - name: SITEURL
+        value: https://local.scanagroempresa.scanterra.com
+      - name: STATIC_ROOT
+        value: /home/web/static
+      - name: URL_PREFIX
+        value: scanagroempresa/
+    volumes:
+      - name: scanagroempresa-scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-scanagroempresa-statics
+      - name: scanagroempresa-scanagroempresa-ssh-config
+        persistentVolumeClaim:
+          claimName: scanagroempresa-scanagroempresa-ssh-config
+  - name: rabbitmq
+    image: rabbitmq:3.6
+    imagePullPolicy: Always
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+  - name: redis
+    image: library/redis:4.0.11
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /data/
+        name: scanagroempresa-scanagroempresa-redis-data
+    volumes:
+      - name: scanagroempresa-scanagroempresa-redis-data
+        persistentVolumeClaim:
+            claimName: scanagroempresa-scanagroempresa-redis-data
 
-service:
-  type: ClusterIP
-  port: 80
+  - name: scanagroempresa
+    image: scanterra/scanagroempresa:develop
+    imagePullPolicy: Always
+    mounts:
+      - mountPath: /home/web/static
+        name: scanagroempresa-statics
+    envs:
+      - name: ALLOWED_HOSTS
+        value: '[''.scanterra.com'']'
+      - name: DATA_PGDATABASE
+        value: kobo_form_data
+      - name: DATA_PGHOST
+        value: db
+      - name: DATA_PGPASSWORD
+        value: postgres
+      - name: DATA_PGPORT
+        value: "5432"
+      - name: DATA_PGUSER
+        value: postgres
+      - name: DJANGO_SECRET_KEY
+        value: sae8c0#cb&d-yt=d)vwf%8ks(rn_+++$za5(mv(2g#-1l9k2%f)vs
+      - name: DJANGO_SETTINGS_MODULE
+        value: scanterra.settings_prod
+      - name: GEONODE_CSRF_COOKIE_NAME
+        value: csrftoken_geonode
+      - name: GEONODE_INDEX_PREFIX
+        value: administration/
+      - name: GEONODE_PGDATABASE
+        value: geonode
+      - name: GEONODE_PGHOST
+        value: db
+      - name: GEONODE_PGPASSWORD
+        value: postgres
+      - name: GEONODE_PGPORT
+        value: "5432"
+      - name: GEONODE_PGUSER
+        value: postgres
+      - name: GEONODE_SERVER_HOST
+        value: http://geonode
+      - name: GEONODE_SERVER_PUBLIC_HOST
+        value: https://local.scanagroempresa.scanterra.com
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: GEOSERVER_ADMIN_USER
+        value: admin
+      - name: GEOSERVER_HOST
+        value: https://local.scanagroempresa.scanterra.com/geoserver
+      - name: GEOSERVER_SERVER_HOST
+        value: https://local.scanagroempresa.scanterra.com/geoserver
+      - name: KOBO_API_TOKEN
+        value: a3e4cf35950304fe709a9cd9ea2b4b6426ea8d21
+      - name: KOBO_API_URL
+        value: https://local.scancollect.scanterra.com
+      - name: KOBO_PGDATABASE
+        value: kobotoolbox
+      - name: KOBO_PGHOST
+        value: postgres.kobotoolbox
+      - name: KOBO_PGPASSWORD
+        value: 2iPKRYvECdJLHspsX5Uj0QKs5EJ1Ztqt
+      - name: KOBO_PGPORT
+        value: "5432"
+      - name: KOBO_PGUSER
+        value: report_user
+      - name: KPI_URL
+        value: https://local.scancollect-form-edit.scanterra.com
+      - name: MEDIA_ROOT
+        value: /home/web/media
+      - name: PGDATABASE
+        value: scanweb
+      - name: PGHOST
+        value: db
+      - name: PGPASSWORD
+        value: postgres
+      - name: PGPORT
+        value: "5432"
+      - name: PGUSER
+        value: postgres
+      - name: PYTHONPATH
+        value: /home/web/extra_app
+      - name: REDIS_DEFAULT_DB
+        value: "1"
+      - name: REDIS_HOST
+        value: redis
+      - name: REDIS_PORT
+        value: "6379"
+      - name: REDIS_SESSION_DB
+        value: "2"
+      - name: ROOT_URLCONF
+        value: scanterra.root_urls
+      - name: SITEURL
+        value: https://local.scanagroempresa.scanterra.com
+      - name: STATIC_ROOT
+        value: /home/web/static
+      - name: URL_PREFIX
+        value: scanagroempresa/
+    volumes:
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+          claimName: scanagroempresa-statics
+  - name: smtp
+    image: catatnight/postfix
+    imagePullPolicy: Always
+    envs:
+      - name: maildomain
+        value: local.scanagroempresa.scanterra.com
+      - name: smtp_user
+        value: noreply:docker
+  - name: worker
+    image: marcelorubini/geonode_generic:removes-models-cp
+    imagePullPolicy: Always
+    args:
+      - celery
+      - worker
+      - -A
+      - core
+      - -l
+      - debug
+      - -Q
+      - celery,default,geonode,cleanup,update,email
+      - -n
+      - geonode.%h
+      - -B
+    mounts:
+      - mountPath: /mnt/volumes/statics
+        name: scanagroempresa-statics
+      - mountPath: /usr/src/app/geonode_generic/templates
+        name: templates
+    envs:
+      - name: ADMIN_EMAILS
+        value: ""
+      - name: ALLOWED_HOSTS
+        value: '[''.scanterra.com'']'
+      - name: ASYNC_SIGNALS_GEONODE
+        value: "True"
+      - name: BROKER_URL
+        value: amqp://guest:guest@rabbitmq:5672/
+      - name: C_FORCE_ROOT
+        value: "1"
+      - name: DATABASE_HOST
+        value: db
+      - name: DATABASE_NAME
+        value: geonode
+      - name: DATABASE_PASSWORD
+        value: postgres
+      - name: DATABASE_USERNAME
+        value: postgres
+      - name: DEBUG
+        value: "False"
+      - name: DEFAULT_BACKEND_DATASTORE
+        value: datastore
+      - name: DEFAULT_FROM_EMAIL
+        value: soporte@scanterra.com
+      - name: DJANGO_SETTINGS_MODULE
+        value: core.settings.overrides
+      - name: DOCKER_ENV
+      - name: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - name: EMAIL_HOST
+        value: smtp
+      - name: EMAIL_HOST_PASSWORD
+        value: docker
+      - name: EMAIL_HOST_USER
+        value: noreply
+      - name: EMAIL_PORT
+        value: "25"
+      - name: EMAIL_USE_TLS
+        value: "False"
+      - name: GEOIP_PATH
+        value: /mnt/volumes/statics/geoip.db
+      - name: GEONODE_DATABASE
+        value: geonode
+      - name: GEONODE_DATABASE_PASSWORD
+        value: geonode
+      - name: GEONODE_GEODATABASE
+        value: geonode_data
+      - name: GEONODE_GEODATABASE_PASSWORD
+        value: geonode_data
+      - name: GEONODE_INDEX_PREFIX
+        value: r'^administration/?'
+      - name: GEONODE_INSTANCE_NAME
+        value: geonode
+      - name: GEONODE_PREFIX
+        value: ''''''
+      - name: GEONODE_THEME_APP_NAME
+        value: geonode_custom_theme
+      - name: GEONODE_THEME_APP_PIP_URL
+        value: git+https://github.com/kartoza/geonode_custom_theme.git@develop
+      - name: GEOSERVER_ADMIN_PASSWORD
+        value: 9Jk*8$k!mlXdgmQiPqya
+      - name: GEOSERVER_BASE_URL
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: GEOSERVER_LOCATION
+        value: http://geoserver:8080/geoserver/
+      - name: GEOSERVER_PUBLIC_LOCATION
+        value: https://local.scanagroempresa.scanterra.com/geoserver/
+      - name: IS_CELERY
+        value: "false"
+      - name: MEDIA_ROOT
+        value: /mnt/volumes/statics/uploaded/
+      - name: PYTHONPATH
+        value: /usr/src/geonode_overrides
+      - name: RANCHER_ENV
+        value: prod.scanterra
+      - name: RANCHER_STACK
+        value: scanagroempresa
+      - name: ROOT_URLCONF
+        value: core.root_urls
+      - name: SCANAGROEMPRESA_URL
+        value: https://local.scanagroempresa.scanterra.com/scanagroempresa/
+      - name: SECRET_KEY
+        value: sae8c0#cb&d-yt=d)vwf%8ks(rn_+++$za5(mv(2g#-1l9k2%f)vs
+      - name: SITEURL
+        value: https://local.scanagroempresa.scanterra.com/
+      - name: STATIC_ROOT
+        value: /mnt/volumes/statics/static/
+      - name: USE_GEONODE_THEME_APP
+        value: "True"
+      - name: USE_GEOSERVER
+        value: "True"
+      - name: UWSGI_CMD
+        value: uwsgi --ini /usr/src/app/uwsgi.ini
+      - name: DATABASE_URL
+        value: postgres://geonode:geonode@db:5432/geonode
+      - name: GEODATABASE_URL
+        value: postgis://geonode_data:geonode_data@db:5432/geonode_data
+    volumes:
+      - name: scanagroempresa-statics
+        persistentVolumeClaim:
+            claimName: scanagroempresa-statics
+      - name: templates
+        persistentVolumeClaim:
+            claimName: templates
 
-ingress:
-  enabled: false
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  hosts:
-    - host: chart-example.local
-      paths: []
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+services:
+  definitions:
+  - name: "db"
+    ports:
+    - name: default
+      port: 42
+      protocol: TCP
+      targetPort: 42
+  - name: "django"
+    ports:
+    - name: default
+      port: 42
+      protocol: TCP
+      targetPort: 42
+  - name: "geonode"
+    ports:
+    - name: "71"
+      port: 71
+      targetPort: 80
+  - name: "geoserver"
+    ports:
+    - name: default
+      port: 42
+      protocol: TCP
+      targetPort: 42
+  - name: "rabbitmq"
+    ports:
+    - name: default
+      port: 42
+      protocol: TCP
+      targetPort: 42
 
-resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+volumeClaims:
+  storageClass: "local-storage"
+  accessMode: "ReadWriteOnce"
+  definitions:
+  - name: "scanagroempresa-borg-cache"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-borg-repo"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-borg-users-home"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-dbbackups"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-dbdata"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-geonode-ssh-config"
+    storageCapacity: "1Gi"
 
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  - name: "scanagroempresa-geoserver-data-dir"
+    storageCapacity: "1Gi"
+  - name: "scanagroempresa-scanagroempresa-redis-data"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-scanagroempresa-ssh-config"
+    storageCapacity: "100Mi"
 
-nodeSelector: {}
+  - name: "scanagroempresa-scanagroempresa-statics"
+    storageCapacity: "100Mi"
+  - name: "scanagroempresa-statics"
+    storageCapacity: "1Gi"
+  - name: "templates"
+    storageCapacity: "1Gi"
 
-tolerations: []
-
-affinity: {}

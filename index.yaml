@@ -3,12 +3,22 @@ entries:
   scanagroempresa:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2020-10-26T11:23:37.188440834-03:00"
+    created: "2020-10-28T18:40:56.114857265-03:00"
+    description: A Scanagroempresa Helm chart for Kubernetes
+    digest: b84b380ac94ad190ae34d7bfe1e052540dea51dc22fb3c9e4bc7d6326da9b2ec
+    name: scanagroempresa
+    type: application
+    urls:
+    - https://marcelorubini.github.io/scanterra-scanagroempresa/scanagroempresa-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2020-10-28T18:40:56.098447181-03:00"
     description: A Scanagroempresa Helm chart for Kubernetes
     digest: 1639fc426537158d0347a672ffadc3cad05c8c8077d6cd2d9a24ef40d827129d
     name: scanagroempresa
     type: application
     urls:
-    - scanagroempresa-0.1.0.tgz
+    - https://marcelorubini.github.io/scanterra-scanagroempresa/scanagroempresa-0.1.0.tgz
     version: 0.1.0
-generated: "2020-10-26T11:23:37.181457499-03:00"
+generated: "2020-10-28T18:40:56.09576661-03:00"
